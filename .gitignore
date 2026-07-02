@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+
+# Builds
+dist/
+
+# Segredos — NUNCA commitar chaves
+.env
+.env.local
+.env.*.local
+
+# Logs / SO / editor
+*.log
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db
