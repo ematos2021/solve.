@@ -56,6 +56,21 @@ drop policy if exists ideias_admin on public.ideias;
 create policy ideias_admin on public.ideias for all
   using (public.is_admin()) with check (public.is_admin());
 
+-- ── NOTAS DE IDEIAS (brainstorm) ──
+create table if not exists public.ideia_notas (
+  id          uuid primary key default gen_random_uuid(),
+  ideia_id    uuid not null references public.ideias(id) on delete cascade,
+  tipo        text not null check (tipo in ('oportunidade','risco','pergunta','passo')),
+  texto       text not null,
+  autor_id    uuid references public.profiles(user_id) on delete set null,
+  reacoes     jsonb not null default '{}'::jsonb,
+  created_at  timestamptz not null default now()
+);
+alter table public.ideia_notas enable row level security;
+drop policy if exists ideia_notas_admin on public.ideia_notas;
+create policy ideia_notas_admin on public.ideia_notas for all
+  using (public.is_admin()) with check (public.is_admin());
+
 -- ── MURAL (comunicação interna rápida entre sócios) ──
 create table if not exists public.mural (
   id          uuid primary key default gen_random_uuid(),

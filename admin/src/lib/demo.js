@@ -69,10 +69,18 @@ function seed() {
       { id: uid(), titulo: 'Reunião de diagnóstico Farmalab', descricao: 'Mapear processos de qualidade atuais.', status: 'feito', prioridade: 'alta', prazo: dia(-4), resp_id: EU, criador_id: EU, cliente_id: cFarma, done_at: ts(-4, 16), created_at: ts(-12) },
     ],
     ideias: [
-      { id: uid(), titulo: 'Automatizar cobrança via Pix recorrente', descricao: 'Gerar cobrança automática no vencimento e baixar o lançamento no caixa sozinho.', categoria: 'Processo interno', status: 'em_execucao', votos: 4, autor_id: MA, created_at: ts(-20) },
+      { id: 'ide-pix', titulo: 'Automatizar cobrança via Pix recorrente', descricao: 'Gerar cobrança automática no vencimento e baixar o lançamento no caixa sozinho.', categoria: 'Processo interno', status: 'em_execucao', votos: 4, autor_id: MA, created_at: ts(-20) },
       { id: uid(), titulo: 'Painel do cliente com indicadores em tempo real', descricao: 'Cada cliente vê os próprios KPIs (OEE, não conformidades) direto no portal.', categoria: 'Produto', status: 'avaliando', votos: 3, autor_id: RA, created_at: ts(-9) },
       { id: uid(), titulo: 'Plano anual com 2 meses de desconto', descricao: 'Melhora caixa e reduz churn. Testar na renovação da Metalúrgica.', categoria: 'Comercial', status: 'aprovada', votos: 2, autor_id: EU, created_at: ts(-14) },
       { id: uid(), titulo: 'Programa de indicação entre clientes', descricao: '10% de desconto por indicação convertida (caso Transportadora Rocha veio assim).', categoria: 'Marketing', status: 'nova', votos: 1, autor_id: MA, created_at: ts(-2) },
+    ],
+    ideia_notas: [
+      { id: uid(), ideia_id: 'ide-pix', tipo: 'oportunidade', texto: 'Acaba com a cobrança manual todo mês — economiza umas 4h da Marina.', autor_id: EU, reacoes: { '👍': [RA, MA], '🔥': [MA] }, created_at: ts(-18, 9) },
+      { id: uid(), ideia_id: 'ide-pix', tipo: 'oportunidade', texto: 'Reduz inadimplência: o cliente não precisa lembrar de pagar.', autor_id: MA, reacoes: { '👍': [EU] }, created_at: ts(-18, 11) },
+      { id: uid(), ideia_id: 'ide-pix', tipo: 'risco', texto: 'Depende da API do banco. Se cair, a cobrança do mês inteiro trava.', autor_id: RA, reacoes: { '🤔': [EU] }, created_at: ts(-17, 14) },
+      { id: uid(), ideia_id: 'ide-pix', tipo: 'pergunta', texto: 'Qual banco tem a melhor API de Pix recorrente hoje? Comparar taxas.', autor_id: EU, reacoes: {}, created_at: ts(-16, 10) },
+      { id: uid(), ideia_id: 'ide-pix', tipo: 'passo', texto: 'Levantar taxas de 3 bancos e montar comparativo', autor_id: MA, reacoes: { '👍': [EU, RA] }, created_at: ts(-15, 16) },
+      { id: uid(), ideia_id: 'ide-pix', tipo: 'passo', texto: 'Testar sandbox do banco escolhido com um cliente piloto', autor_id: RA, reacoes: {}, created_at: ts(-14, 9) },
     ],
     mural: [
       { id: uid(), autor_id: EU, texto: 'Prioridade da semana: fechar o upgrade da Mondial. 🏆\nProposta PRO2026/00/1670 enviada — follow-up com a Sara é amanhã. Qualquer contato dela, me avisem.', fixado: true, created_at: ts(-2, 9) },
@@ -145,7 +153,11 @@ const RELACOES = {
     clientes: { tabela: 'clientes', fk: 'cliente_id', tipo: 'um' },
   },
   leads: { resp: { tabela: 'profiles', fk: 'resp_id', chave: 'user_id', tipo: 'um' } },
-  ideias: { autor: { tabela: 'profiles', fk: 'autor_id', chave: 'user_id', tipo: 'um' } },
+  ideias: {
+    autor: { tabela: 'profiles', fk: 'autor_id', chave: 'user_id', tipo: 'um' },
+    ideia_notas: { tabela: 'ideia_notas', fk: 'ideia_id', tipo: 'muitos' },
+  },
+  ideia_notas: { autor: { tabela: 'profiles', fk: 'autor_id', chave: 'user_id', tipo: 'um' } },
   mural: { autor: { tabela: 'profiles', fk: 'autor_id', chave: 'user_id', tipo: 'um' } },
   orcamentos: {
     clientes: { tabela: 'clientes', fk: 'cliente_id', tipo: 'um' },

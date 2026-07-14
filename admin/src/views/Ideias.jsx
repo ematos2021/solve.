@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, dataBR, nomeCurto } from '../lib/supabase';
 import { Modal, Field, Acoes, Avatar } from '../components/ui';
 import { useApp } from '../App';
-import { FaPlus, FaPen, FaTrash, FaThumbsUp } from 'react-icons/fa';
+import Brainstorm from './Brainstorm';
+import { FaPlus, FaPen, FaTrash, FaThumbsUp, FaComments } from 'react-icons/fa';
 
 const STATUS = [
   { id: 'nova', label: 'Nova', cls: 'info' },
@@ -21,10 +22,11 @@ export default function Ideias() {
   const [lista, setLista] = useState([]);
   const [filtro, setFiltro] = useState('ativas');
   const [edit, setEdit] = useState(null);
+  const [aberta, setAberta] = useState(null);   // ideia em brainstorm
   const [busy, setBusy] = useState(false);
 
   const carregar = useCallback(async () => {
-    const { data } = await supabase.from('ideias').select('*, autor:autor_id(nome)')
+    const { data } = await supabase.from('ideias').select('*, autor:autor_id(nome), ideia_notas(id)')
       .order('votos', { ascending: false }).order('created_at', { ascending: false });
     setLista(data || []);
   }, []);
@@ -39,7 +41,7 @@ export default function Ideias() {
   const salvar = async () => {
     if (!edit.titulo.trim()) return alert('Dê um título à ideia.');
     setBusy(true);
-    const { id, created_at, votos, autor: _a, ...campos } = edit;
+    const { id, created_at, votos, autor: _a, ideia_notas: _n, ...campos } = edit;
     if (id) await supabase.from('ideias').update(campos).eq('id', id);
     else await supabase.from('ideias').insert({ ...campos, autor_id: session.user.id });
     setBusy(false); setEdit(null); carregar();
@@ -57,6 +59,12 @@ export default function Ideias() {
   };
 
   const stInfo = (s) => STATUS.find(x => x.id === s) || STATUS[0];
+
+  if (aberta) {
+    // Recarrega a lista ao voltar, para refletir votos/status alterados lá dentro.
+    const atual = lista.find(i => i.id === aberta.id) || aberta;
+    return <Brainstorm ideia={atual} onBack={() => { setAberta(null); carregar(); }} onMudou={carregar} />;
+  }
 
   return (
     <div className="fade-in">
@@ -95,6 +103,12 @@ export default function Ideias() {
                   <button className="btn sm warn" onClick={() => remover(i)}><FaTrash size={10} /></button>
                 </span>
               </div>
+              <button className="btn sm" style={{ width: '100%', justifyContent: 'space-between' }} onClick={() => setAberta(i)}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><FaComments size={10} /> Brainstorm</span>
+                <span style={{ color: 'var(--text-4)', fontSize: '0.7rem' }}>
+                  {i.ideia_notas?.length ? `${i.ideia_notas.length} nota${i.ideia_notas.length > 1 ? 's' : ''}` : 'começar'}
+                </span>
+              </button>
             </div>
           );
         })}

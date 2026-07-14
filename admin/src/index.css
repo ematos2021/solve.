@@ -75,6 +75,21 @@ select.input option { background: #17171a; color: var(--text); }
 .kanban-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 0.65rem 0.75rem; margin-bottom: 0.55rem; font-size: 0.84rem; transition: border-color 0.15s; }
 .kanban-card:hover { border-color: var(--border-strong); }
 
+/* ── Brainstorm: notas e reações ── */
+.nota {
+  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--acento, var(--border-strong));
+  border-radius: 9px; padding: 0.6rem 0.7rem; margin-bottom: 0.55rem; font-size: 0.84rem;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.nota:hover { border-color: var(--border-strong); border-left-color: var(--acento, var(--border-strong)); }
+.reacao {
+  display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-2); font-size: 0.7rem; line-height: 1.5;
+  cursor: pointer; color: var(--text-3); transition: all 0.12s; font-family: inherit;
+}
+.reacao:hover { border-color: var(--text-4); transform: translateY(-1px); }
+.reacao.on { border-color: var(--text-3); color: var(--text); background: var(--card-hover); }
+
 .avatar { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--bg-3); border: 1px solid var(--border-strong); font-size: 0.62rem; font-weight: 800; color: var(--text-2); text-transform: uppercase; flex-shrink: 0; }
 
 .nav-sec { font-size: 0.6rem; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-4); padding: 0.75rem 0.75rem 0.25rem; }
