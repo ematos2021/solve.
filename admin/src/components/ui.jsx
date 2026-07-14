@@ -1,4 +1,5 @@
 import { FaTimes } from 'react-icons/fa';
+import { createPortal } from 'react-dom';
 
 export function Kpi({ label, value, sub, tone }) {
   const cor = tone === 'ok' ? 'var(--ok)' : tone === 'warn' ? 'var(--warn)' : tone === 'danger' ? 'var(--danger)' : 'var(--text)';
@@ -12,19 +13,22 @@ export function Kpi({ label, value, sub, tone }) {
 }
 
 export function Modal({ titulo, onClose, children, wide }) {
-  return (
+  // Portal para o <body>: garante que o overlay cubra a viewport inteira,
+  // imune a transforms/animações de containers pai (senão o modal "escapa" de posição).
+  return createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }} style={{
       position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(5,5,6,0.85)', backdropFilter: 'blur(5px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', overflowY: 'auto',
     }}>
-      <div className="card fade-in" style={{ width: '100%', maxWidth: wide ? 660 : 480, padding: '1.3rem', maxHeight: '92vh', overflowY: 'auto' }}>
+      <div className="card fade-in" style={{ width: '100%', maxWidth: wide ? 660 : 480, padding: '1.3rem', maxHeight: '92vh', overflowY: 'auto', margin: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>{titulo}</h2>
           <button onClick={onClose} className="btn sm" style={{ marginLeft: 'auto', border: 'none' }}><FaTimes size={13} /></button>
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -44,4 +48,16 @@ export const Acoes = ({ onCancel, onOk, okLabel = 'Salvar', busy }) => (
 
 export const Vazio = ({ msg }) => (
   <tr><td colSpan={99} style={{ textAlign: 'center', padding: '2.2rem', color: 'var(--text-3)' }}>{msg}</td></tr>
+);
+
+// Bolinha com as iniciais do sócio (responsável/autor)
+export function Avatar({ perfil, title }) {
+  const nome = (perfil?.nome || '').trim();
+  const ini = nome ? nome.split(/\s+/).slice(0, 2).map(p => p[0]).join('') : '?';
+  return <span className="avatar" title={title || nome || 'Sem responsável'}>{ini}</span>;
+}
+
+export const PRIO_CLS = { baixa: '', normal: 'info', alta: 'warn', urgente: 'danger' };
+export const PrioBadge = ({ prio }) => (
+  <span className={`badge ${PRIO_CLS[prio] || ''}`}>{prio}</span>
 );
