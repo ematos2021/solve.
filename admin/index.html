@@ -10,6 +10,55 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      Rede de segurança do app instalado. Se o bundle não chegar a rodar (sintaxe
+      que a WebView do aparelho não entende, arquivo faltando, chunk que não
+      resolve), sem isto a tela fica muda e não há como diagnosticar no celular.
+      Escrito em ES5 de propósito: precisa funcionar justamente onde o resto falhou.
+    -->
+    <script>
+      (function () {
+        var mostrado = false;
+        function mostrar(titulo, detalhe) {
+          if (mostrado) return;
+          mostrado = true;
+          var raiz = document.getElementById('root');
+          if (!raiz) return;
+          raiz.innerHTML = '';
+          var caixa = document.createElement('div');
+          caixa.style.cssText = 'font:14px system-ui,sans-serif;color:#f4f4f5;padding:24px;max-width:640px;margin:40px auto;border:1px solid #33333a;border-radius:13px;background:#141416';
+          var h = document.createElement('div');
+          h.style.cssText = 'font-weight:800;margin-bottom:8px';
+          h.textContent = titulo;
+          var p = document.createElement('pre');
+          p.style.cssText = 'white-space:pre-wrap;word-break:break-word;color:#fc8181;font-size:12px;margin:0';
+          p.textContent = detalhe || '(sem detalhe)';
+          caixa.appendChild(h);
+          caixa.appendChild(p);
+          raiz.appendChild(caixa);
+        }
+        window.addEventListener('error', function (e) {
+          var alvo = e && e.target;
+          if (alvo && (alvo.src || alvo.href)) {
+            mostrar('Arquivo do app não carregou', String(alvo.src || alvo.href));
+          } else {
+            mostrar('Falha ao iniciar o app', e && e.message ? e.message : String(e));
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e && e.reason;
+          mostrar('Erro não tratado', r && r.message ? r.message : String(r));
+        });
+        // Nada renderizado depois de 10s = travou sem lançar erro.
+        setTimeout(function () {
+          var raiz = document.getElementById('root');
+          if (raiz && !raiz.firstChild) {
+            mostrar('O app não terminou de carregar',
+              'A tela ficou vazia por 10 segundos. Sem internet, o login não abre.');
+          }
+        }, 10000);
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
