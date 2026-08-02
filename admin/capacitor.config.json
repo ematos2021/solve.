@@ -1,0 +1,33 @@
+{
+  "appId": "br.com.solve.central",
+  "appName": "Solve Central",
+  "webDir": "dist",
+  "backgroundColor": "#0a0a0b",
+  "android": {
+    "backgroundColor": "#0a0a0b",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "ios": {
+    "backgroundColor": "#0a0a0b",
+    "contentInset": "always"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#0a0a0b",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0a0a0b",
+      "overlaysWebView": false
+    },
+    "Keyboard": {
+      "resize": "native",
+      "style": "DARK",
+      "resizeOnFullScreen": true
+    }
+  }
+}

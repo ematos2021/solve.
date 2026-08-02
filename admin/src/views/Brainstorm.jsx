@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase, dtBR, nomeCurto } from '../lib/supabase';
-import { Avatar } from '../components/ui';
+import { Avatar, Modal } from '../components/ui';
 import { useApp } from '../App';
-import { FaArrowLeft, FaTrash, FaThumbsUp, FaCheckSquare, FaLightbulb } from 'react-icons/fa';
+import { FaArrowLeft, FaTrash, FaThumbsUp, FaCheckSquare, FaLightbulb, FaMagic, FaCopy, FaCheck } from 'react-icons/fa';
 
 // As quatro lentes do brainstorm. Estrutura leve o bastante para não
 // travar a conversa, e específica o bastante para a ideia sair do lugar.
@@ -21,6 +21,7 @@ export default function Brainstorm({ ideia, onBack, onMudou }) {
   const [rapida, setRapida] = useState({});
   const [votos, setVotos] = useState(ideia.votos);
   const [status, setStatus] = useState(ideia.status);
+  const [promptAberto, setPromptAberto] = useState(false);
 
   const carregar = useCallback(async () => {
     const { data } = await supabase.from('ideia_notas')
@@ -67,6 +68,7 @@ export default function Brainstorm({ ideia, onBack, onMudou }) {
       titulo: n.texto,
       descricao: `Veio do brainstorm da ideia: ${ideia.titulo}`,
       status: 'a_fazer', prioridade: 'normal', resp_id: uid, criador_id: uid,
+      projeto_id: ideia.projeto_id || null,   // tarefa herda o projeto da ideia
     });
     alert('Tarefa criada! Ela está em Tarefas → A fazer.');
   };
@@ -84,6 +86,33 @@ export default function Brainstorm({ ideia, onBack, onMudou }) {
     onMudou?.();
   };
 
+  // Compila o brainstorm inteiro num prompt pronto para um agente de IA
+  // (Antigravity, Claude Code…): contexto + as quatro lentes + pedido claro.
+  const promptIA = useMemo(() => {
+    const bloco = (tipo, titulo) => {
+      const doTipo = notas.filter(n => n.tipo === tipo);
+      return doTipo.length ? `## ${titulo}\n${doTipo.map(n => `- ${n.texto}`).join('\n')}` : '';
+    };
+    return [
+      'Você é um agente de desenvolvimento sênior. Abaixo está o registro do brainstorm da nossa equipe sobre uma ideia de produto/negócio. Analise tudo e me ajude a tirá-la do papel.',
+      `# Ideia: ${ideia.titulo}`,
+      `Categoria: ${ideia.categoria || 'geral'}`,
+      ideia.descricao ? `Descrição: ${ideia.descricao}` : '',
+      bloco('oportunidade', 'Oportunidades (por que pode dar certo)'),
+      bloco('risco', 'Riscos (o que pode dar errado)'),
+      bloco('pergunta', 'Perguntas em aberto'),
+      bloco('passo', 'Próximos passos já definidos pela equipe'),
+      `# O que eu espero de você
+1. Resuma seu entendimento da ideia em poucas linhas.
+2. Responda às perguntas em aberto com boas práticas e alternativas de mercado.
+3. Considere os riscos listados e proponha como mitigar cada um.
+4. Proponha um MVP enxuto: escopo mínimo, stack sugerida e arquitetura.
+5. Monte um plano de execução em etapas pequenas e verificáveis e, quando eu aprovar, crie a estrutura inicial do projeto.
+
+Antes de gerar qualquer código, me faça as perguntas necessárias para fechar o escopo.`,
+    ].filter(Boolean).join('\n\n');
+  }, [notas, ideia]);
+
   return (
     <div className="fade-in">
       {/* Cabeçalho */}
@@ -92,7 +121,10 @@ export default function Brainstorm({ ideia, onBack, onMudou }) {
         <h1 style={{ fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FaLightbulb size={14} style={{ color: 'var(--warn)' }} /> {ideia.titulo}
         </h1>
-        <span style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="btn sm" title="Compilar o brainstorm num prompt para IA (Antigravity)" onClick={() => setPromptAberto(true)}>
+            <FaMagic size={10} /> Gerar prompt
+          </button>
           <select className="input" style={{ width: 'auto', padding: '0.3rem 1.9rem 0.3rem 0.6rem', fontSize: '0.8rem' }}
             value={status} onChange={e => mudarStatus(e.target.value)}>
             <option value="nova">Nova</option><option value="avaliando">Em avaliação</option>
@@ -179,7 +211,39 @@ export default function Brainstorm({ ideia, onBack, onMudou }) {
           );
         })}
       </div>
+
+      {promptAberto && <PromptModal texto={promptIA} onClose={() => setPromptAberto(false)} />}
     </div>
+  );
+}
+
+// Modal com o prompt compilado: revisar, copiar e colar no agente de IA
+function PromptModal({ texto, onClose }) {
+  const [copiado, setCopiado] = useState(false);
+  const copiar = async () => {
+    const ta = document.getElementById('prompt-ia');
+    const atual = ta ? ta.value : texto;   // copia o texto já com as edições do usuário
+    try { await navigator.clipboard.writeText(atual); }
+    catch {
+      ta.focus(); ta.select(); document.execCommand('copy');
+    }
+    setCopiado(true); setTimeout(() => setCopiado(false), 2000);
+  };
+  return (
+    <Modal titulo="Prompt para agente de IA" onClose={onClose} wide>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-3)', marginBottom: '0.7rem' }}>
+        O brainstorm inteiro virou um prompt: copie e cole no Antigravity (ou em outro agente)
+        para transformar a ideia em plano e protótipo. Edite à vontade antes de copiar.
+      </p>
+      <textarea id="prompt-ia" className="input" defaultValue={texto} rows={14}
+        style={{ fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '0.76rem', lineHeight: 1.55 }} />
+      <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.9rem' }}>
+        <button className="btn" style={{ flex: 1 }} onClick={onClose}>Fechar</button>
+        <button className="btn solid" style={{ flex: 1 }} onClick={copiar}>
+          {copiado ? <><FaCheck size={11} /> Copiado!</> : <><FaCopy size={11} /> Copiar prompt</>}
+        </button>
+      </div>
+    </Modal>
   );
 }
 

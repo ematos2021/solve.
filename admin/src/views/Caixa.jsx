@@ -120,7 +120,7 @@ export default function Caixa() {
 
       {edit && (
         <Modal titulo={edit.id ? 'Editar lançamento' : 'Novo lançamento'} onClose={() => setEdit(null)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+          <div className="grid-2">
             <Field label="Tipo">
               <select className="input" value={edit.tipo} onChange={e => setEdit({ ...edit, tipo: e.target.value, categoria: e.target.value === 'entrada' ? CATS_ENTRADA[0] : CATS_SAIDA[0] })}>
                 <option value="entrada">Entrada</option><option value="saida">Saída / custo</option>

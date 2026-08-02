@@ -113,13 +113,13 @@ export default function Mural() {
   };
 
   return (
-    <div className="fade-in" style={{ display: 'flex', gap: '2.5rem', alignItems: 'flex-start', width: '100%', maxWidth: 1400 }}>
+    <div className="fade-in mural-wrap">
       
       {/* Coluna Principal: Mural */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <h1 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.1rem' }}>Mural da equipe</h1>
 
-        <form onSubmit={publicar} className="card" style={{ padding: '0.9rem 1rem', marginBottom: '1.1rem', display: 'flex', gap: '0.7rem', alignItems: 'flex-end' }}>
+        <form onSubmit={publicar} className="card mural-form" style={{ padding: '0.9rem 1rem', marginBottom: '1.1rem' }}>
           <textarea id="txt-mural" className="input" rows={3} style={{ minHeight: 70 }} placeholder="Compartilhe um aviso, decisão ou atualização com os sócios… (Ctrl+Enter publica)"
             value={texto} onChange={e => setTexto(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) publicar(); }} />
@@ -154,7 +154,7 @@ export default function Mural() {
       </div>
 
       {/* Coluna Lúdica: Sinos sonoros */}
-      <div style={{ flexShrink: 0, position: 'sticky', top: 20, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="mural-bells">
         
         {BELLS.map(b => (
           <div 

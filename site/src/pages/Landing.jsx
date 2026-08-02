@@ -235,13 +235,35 @@ export default function Landing({ onPortal }) {
   );
 }
 
+export function NuraLogo({ size = 36, style = {} }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}>
+      {/* Nó central (círculo com ponto interno) */}
+      <circle cx="32" cy="32" r="7" fill="none" stroke="#ffffff" strokeWidth="2.5" />
+      <circle cx="32" cy="32" r="2.5" fill="#ffffff" />
+      
+      {/* Hastes conectoras */}
+      <line x1="32" y1="25" x2="32" y2="15" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="25.94" y1="35.5" x2="17.28" y2="40.5" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="38.06" y1="35.5" x2="46.72" y2="40.5" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+      
+      {/* Nós externos */}
+      <circle cx="32" cy="11.5" r="3.5" fill="#ffffff" />
+      <circle cx="14.24" cy="42.25" r="3.5" fill="#ffffff" />
+      <circle cx="49.76" cy="42.25" r="3.5" fill="#ffffff" />
+    </svg>
+  );
+}
+
 function Wordmark() {
   return (
-    <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: -0.5, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-      solve<span style={{ color: 'var(--text-3)' }}>.</span>
+    <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: -0.5, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <NuraLogo size={28} />
+      <span>Nura</span>
     </span>
   );
 }
+
 
 // Miniatura de demonstração: tenta imagem real em /demos/{id}-1.png;
 // sem imagem, mostra um mock abstrato elegante (nunca o código).

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase, brl, dataBR, hoje, codigoOrcamento } from '../lib/supabase';
+import { imprimirDocumento, aoVoltar, nativo } from '../lib/native';
 import { Field, Vazio, Kpi } from '../components/ui';
 import { CATALOGO, OBJETOS_SUGERIDOS } from '../data/catalogo';
 import { FaPlus, FaPen, FaTrash, FaPrint, FaCopy, FaArrowLeft, FaSave } from 'react-icons/fa';
@@ -220,22 +221,24 @@ function Editor({ edit, setEdit, clientes, salvar, busy, onPrint, printDoc, setP
         </select>
         <button className="btn sm" onClick={() => addItem(secao)}><FaPlus size={9} /> Em branco</button>
       </div>
-      <table className="tbl">
-        <thead><tr><th style={{ width: '38%' }}>Descrição</th><th>Detalhe</th><th className="num" style={{ width: 70 }}>Qtd</th><th className="num" style={{ width: 130 }}>Valor unit. (R$)</th><th className="num" style={{ width: 120 }}>Total</th><th style={{ width: 40 }}></th></tr></thead>
-        <tbody>
-          {itens.filter(i => i.secao === secao).map(i => (
-            <tr key={i._key}>
-              <td><input className="input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }} value={i.descricao} onChange={e => setItem(i._key, { descricao: e.target.value })} placeholder="Ex.: Licenças QMS Premium — 30 licenças Staff" /></td>
-              <td><input className="input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }} value={i.detalhe} onChange={e => setItem(i._key, { detalhe: e.target.value })} placeholder="Perfil, tipo de acesso…" /></td>
-              <td><input className="input num" type="number" min="0" step="1" style={{ fontSize: '0.82rem', padding: '0.4rem 0.5rem', textAlign: 'right' }} value={i.qtd} onChange={e => setItem(i._key, { qtd: e.target.value })} /></td>
-              <td><input className="input" type="number" min="0" step="0.01" style={{ fontSize: '0.82rem', padding: '0.4rem 0.5rem', textAlign: 'right' }} value={i.valor_unit} onChange={e => setItem(i._key, { valor_unit: e.target.value })} /></td>
-              <td className="num" style={{ fontWeight: 700 }}>{brl((Number(i.qtd) || 0) * (Number(i.valor_unit) || 0))}</td>
-              <td><button className="btn sm warn" onClick={() => delItem(i._key)}><FaTrash size={9} /></button></td>
-            </tr>
-          ))}
-          {!itens.some(i => i.secao === secao) && <Vazio msg="Sem itens — escolha no catálogo acima." />}
-        </tbody>
-      </table>
+      <div className="tbl-wrap">
+        <table className="tbl">
+          <thead><tr><th style={{ width: '38%' }}>Descrição</th><th>Detalhe</th><th className="num" style={{ width: 70 }}>Qtd</th><th className="num" style={{ width: 130 }}>Valor unit. (R$)</th><th className="num" style={{ width: 120 }}>Total</th><th style={{ width: 40 }}></th></tr></thead>
+          <tbody>
+            {itens.filter(i => i.secao === secao).map(i => (
+              <tr key={i._key}>
+                <td><input className="input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem', minWidth: 180 }} value={i.descricao} onChange={e => setItem(i._key, { descricao: e.target.value })} placeholder="Ex.: Licenças QMS Premium — 30 licenças Staff" /></td>
+                <td><input className="input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem', minWidth: 140 }} value={i.detalhe} onChange={e => setItem(i._key, { detalhe: e.target.value })} placeholder="Perfil, tipo de acesso…" /></td>
+                <td><input className="input num" type="number" min="0" step="1" style={{ fontSize: '0.82rem', padding: '0.4rem 0.5rem', textAlign: 'right' }} value={i.qtd} onChange={e => setItem(i._key, { qtd: e.target.value })} /></td>
+                <td><input className="input" type="number" min="0" step="0.01" style={{ fontSize: '0.82rem', padding: '0.4rem 0.5rem', textAlign: 'right' }} value={i.valor_unit} onChange={e => setItem(i._key, { valor_unit: e.target.value })} /></td>
+                <td className="num" style={{ fontWeight: 700 }}>{brl((Number(i.qtd) || 0) * (Number(i.valor_unit) || 0))}</td>
+                <td><button className="btn sm warn" onClick={() => delItem(i._key)}><FaTrash size={9} /></button></td>
+              </tr>
+            ))}
+            {!itens.some(i => i.secao === secao) && <Vazio msg="Sem itens — escolha no catálogo acima." />}
+          </tbody>
+        </table>
+      </div>
     </div>
   ); };
 
@@ -255,7 +258,7 @@ function Editor({ edit, setEdit, clientes, salvar, busy, onPrint, printDoc, setP
 
       {/* Cabeçalho da proposta */}
       <div className="card" style={{ padding: '1rem 1.1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.8rem' }}>
+        <div className="grid-4">
           <Field label="Cliente" span={2}>
             <select className="input" value={orc.cliente_id} onChange={e => escolherCliente(e.target.value)}>
               <option value="">Selecione…</option>
@@ -287,7 +290,7 @@ function Editor({ edit, setEdit, clientes, salvar, busy, onPrint, printDoc, setP
       </div>
 
       {/* Condições */}
-      <div className="card" style={{ padding: '1rem 1.1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+      <div className="card grid-2" style={{ padding: '1rem 1.1rem' }}>
         <Field label="Condições de pagamento"><textarea className="input" rows={3} value={orc.cond_pagamento} onChange={e => setOrc({ cond_pagamento: e.target.value })} /></Field>
         <Field label="Prazo de entrega"><textarea className="input" rows={3} value={orc.prazo_entrega} onChange={e => setOrc({ prazo_entrega: e.target.value })} /></Field>
         <Field label="Observações (entram na proposta)" span={2}><textarea className="input" rows={2} value={orc.obs} onChange={e => setOrc({ obs: e.target.value })} /></Field>
@@ -301,7 +304,9 @@ function Editor({ edit, setEdit, clientes, salvar, busy, onPrint, printDoc, setP
 /* ─────────────── Documento da proposta (preview + impressão) ─────────────── */
 
 function PreviewProposta({ o, onClose }) {
-  const imprimir = () => window.print();
+  // No app, "voltar" fecha o preview (senão o Android fecharia a Central inteira).
+  useEffect(() => aoVoltar(onClose), [onClose]);
+  const imprimir = () => imprimirDocumento(codigoOrcamento(o).replace(/\//g, '-'));
   return createPortal(
     <>
       {/* Preview na tela (layout em bloco: rolagem sempre funciona) */}
@@ -311,7 +316,9 @@ function PreviewProposta({ o, onClose }) {
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 2, display: 'flex', gap: '0.6rem', margin: '0 auto 0.9rem', maxWidth: 820, justifyContent: 'flex-end' }}>
           <button className="btn" style={{ background: 'var(--bg-2)' }} onClick={onClose}>Fechar</button>
-          <button className="btn solid" onClick={imprimir}><FaPrint size={11} /> Imprimir / Salvar PDF</button>
+          <button className="btn solid" onClick={imprimir}>
+            <FaPrint size={11} /> {nativo ? 'Salvar PDF / Enviar' : 'Imprimir / Salvar PDF'}
+          </button>
         </div>
         <div style={{ margin: '0 auto', maxWidth: 820, borderRadius: 8, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
           <DocProposta o={o} />

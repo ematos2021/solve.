@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { criarClienteDemo, resetDemo } from './demo';
+import { authStorage, nativo } from './native';
 
 // Mesmo Supabase do site público. Só a anon key — o acesso administrativo
 // vem do login com usuário role='admin', validado pelas políticas RLS.
@@ -8,7 +9,18 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const demoMode = !(url && key);
-export const supabase = demoMode ? criarClienteDemo() : createClient(url, key);
+export const supabase = demoMode ? criarClienteDemo() : createClient(url, key, {
+  auth: {
+    // Dentro do APK a sessão vai para o armazenamento nativo (ver lib/native.js);
+    // no navegador `storage` fica undefined e o supabase-js usa o localStorage.
+    storage: authStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    // No app não existe redirect de URL para interpretar (e ler a URL da WebView
+    // só atrasaria a abertura); no site, mantém o comportamento padrão.
+    detectSessionInUrl: !nativo,
+  },
+});
 export const supabaseConfigurado = true;
 export { resetDemo };
 

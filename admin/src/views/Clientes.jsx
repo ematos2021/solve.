@@ -68,7 +68,7 @@ export default function Clientes() {
 
       {edit && (
         <Modal titulo={edit.id ? 'Editar cliente' : 'Novo cliente'} onClose={() => setEdit(null)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+          <div className="grid-2">
             <Field label="Empresa" span={2}><input className="input" value={edit.empresa} onChange={e => setEdit({ ...edit, empresa: e.target.value })} autoFocus /></Field>
             <Field label="Pessoa de contato"><input className="input" value={edit.contato} onChange={e => setEdit({ ...edit, contato: e.target.value })} /></Field>
             <Field label="E-mail"><input className="input" value={edit.email} onChange={e => setEdit({ ...edit, email: e.target.value })} /></Field>

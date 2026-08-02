@@ -9,11 +9,12 @@ const COLS = [
   { id: 'fazendo', label: 'Em andamento' },
   { id: 'feito', label: 'Concluído' },
 ];
-const NOVA = { titulo: '', descricao: '', status: 'a_fazer', prioridade: 'normal', prazo: '', resp_id: '', cliente_id: '' };
+const NOVA = { titulo: '', descricao: '', status: 'a_fazer', prioridade: 'normal', prazo: '', resp_id: '', cliente_id: '', projeto_id: '' };
 
-// Kanban de tarefas compartilhado entre os sócios.
+// Kanban de tarefas da equipe. Associados só veem tarefas dos próprios
+// projetos (RLS); a lente de projetos da sidebar filtra para todos.
 export default function Tarefas() {
-  const { session, equipe } = useApp();
+  const { session, equipe, projetos, projFiltro, isAdmin } = useApp();
   const [lista, setLista] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [filtroResp, setFiltroResp] = useState('todos');
@@ -31,19 +32,26 @@ export default function Tarefas() {
   }, []);
   useEffect(() => { carregar(); }, [carregar]);
 
+  const nomeProjeto = (id) => projetos.find(p => p.id === id)?.nome;
+  // Projeto padrão de tarefa nova: a lente ativa; associado nunca cria "sem projeto"
+  const projetoPadrao = projFiltro !== 'todos' ? projFiltro : (isAdmin ? '' : (projetos[0]?.id || ''));
+
   const visiveis = useMemo(() => lista.filter(t => {
+    if (projFiltro !== 'todos' && t.projeto_id !== projFiltro) return false;
     if (filtroResp === 'todos') return true;
     if (filtroResp === 'minhas') return t.resp_id === session.user.id;
     return t.resp_id === filtroResp;
-  }), [lista, filtroResp, session]);
+  }), [lista, filtroResp, session, projFiltro]);
 
   const salvar = async () => {
     if (!edit.titulo.trim()) return alert('Informe o título.');
+    if (!isAdmin && !edit.projeto_id) return alert('Escolha o projeto da tarefa.');
     setBusy(true);
     const { id, created_at, resp: _r, criador: _cr, clientes: _c, ...campos } = edit;
     campos.prazo = campos.prazo || null;
     campos.resp_id = campos.resp_id || null;
     campos.cliente_id = campos.cliente_id || null;
+    campos.projeto_id = campos.projeto_id || null;
     campos.done_at = campos.status === 'feito' ? (edit.done_at || new Date().toISOString()) : null;
     if (id) await supabase.from('tarefas').update(campos).eq('id', id);
     else await supabase.from('tarefas').insert({ ...campos, criador_id: session.user.id });
@@ -54,7 +62,10 @@ export default function Tarefas() {
     const titulo = (rapida[status] || '').trim();
     if (!titulo) return;
     setRapida({ ...rapida, [status]: '' });
-    await supabase.from('tarefas').insert({ titulo, status, criador_id: session.user.id, resp_id: session.user.id });
+    await supabase.from('tarefas').insert({
+      titulo, status, criador_id: session.user.id, resp_id: session.user.id,
+      projeto_id: projetoPadrao || null,
+    });
     carregar();
   };
 
@@ -90,7 +101,7 @@ export default function Tarefas() {
           {equipe.map(p => <option key={p.user_id} value={p.user_id}>{p.nome || p.user_id.slice(0, 6)}</option>)}
         </select>
         <button className="btn" onClick={limparConcluidas}>Arquivar concluídas</button>
-        <button className="btn solid" onClick={() => setEdit({ ...NOVA, resp_id: session.user.id })}><FaPlus size={11} /> Nova tarefa</button>
+        <button className="btn solid" onClick={() => setEdit({ ...NOVA, resp_id: session.user.id, projeto_id: projetoPadrao })}><FaPlus size={11} /> Nova tarefa</button>
       </div>
 
       <div className="kanban">
@@ -113,6 +124,7 @@ export default function Tarefas() {
                     {t.descricao && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: 4 }}>{t.descricao}</div>}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
                       {t.prioridade !== 'normal' && <PrioBadge prio={t.prioridade} />}
+                      {projFiltro === 'todos' && t.projeto_id && nomeProjeto(t.projeto_id) && <span className="badge info">{nomeProjeto(t.projeto_id)}</span>}
                       {t.clientes?.empresa && <span className="badge">{t.clientes.empresa}</span>}
                       {t.prazo && (
                         <span style={{ fontSize: '0.72rem', fontWeight: 700, color: atrasada ? 'var(--danger)' : d <= 2 ? 'var(--warn)' : 'var(--text-3)' }}>
@@ -122,7 +134,7 @@ export default function Tarefas() {
                       <span style={{ marginLeft: 'auto', display: 'flex', gap: 3 }}>
                         {col.id !== 'a_fazer' && <button className="btn sm" style={{ padding: '0.2rem 0.4rem' }} title="Voltar etapa" onClick={() => mover(t, -1)}><FaArrowLeft size={9} /></button>}
                         {col.id !== 'feito' && <button className="btn sm" style={{ padding: '0.2rem 0.4rem' }} title={col.id === 'fazendo' ? 'Concluir' : 'Avançar etapa'} onClick={() => mover(t, 1)}>{col.id === 'fazendo' ? <FaCheck size={9} /> : <FaArrowRight size={9} />}</button>}
-                        <button className="btn sm" style={{ padding: '0.2rem 0.4rem' }} onClick={() => setEdit({ ...t, prazo: t.prazo || '', resp_id: t.resp_id || '', cliente_id: t.cliente_id || '' })}><FaPen size={9} /></button>
+                        <button className="btn sm" style={{ padding: '0.2rem 0.4rem' }} onClick={() => setEdit({ ...t, prazo: t.prazo || '', resp_id: t.resp_id || '', cliente_id: t.cliente_id || '', projeto_id: t.projeto_id || '' })}><FaPen size={9} /></button>
                         <button className="btn sm warn" style={{ padding: '0.2rem 0.4rem' }} onClick={() => remover(t)}><FaTrash size={9} /></button>
                       </span>
                     </div>
@@ -141,7 +153,7 @@ export default function Tarefas() {
 
       {edit && (
         <Modal titulo={edit.id ? 'Editar tarefa' : 'Nova tarefa'} onClose={() => setEdit(null)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+          <div className="grid-2">
             <Field label="Título" span={2}><input className="input" value={edit.titulo} onChange={e => setEdit({ ...edit, titulo: e.target.value })} autoFocus /></Field>
             <Field label="Descrição" span={2}><textarea className="input" rows={2} value={edit.descricao} onChange={e => setEdit({ ...edit, descricao: e.target.value })} /></Field>
             <Field label="Responsável">
@@ -163,7 +175,13 @@ export default function Tarefas() {
                 {clientes.map(c => <option key={c.id} value={c.id}>{c.empresa}</option>)}
               </select>
             </Field>
-            <Field label="Situação" span={2}>
+            <Field label="Projeto">
+              <select className="input" value={edit.projeto_id || ''} onChange={e => setEdit({ ...edit, projeto_id: e.target.value })}>
+                {isAdmin && <option value="">Interno — só sócios</option>}
+                {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+            </Field>
+            <Field label="Situação">
               <select className="input" value={edit.status} onChange={e => setEdit({ ...edit, status: e.target.value })}>
                 {COLS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>

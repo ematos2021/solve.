@@ -5,8 +5,10 @@ import { useApp } from '../App';
 import { FaArrowRight } from 'react-icons/fa';
 
 // Central do dia: o que a equipe precisa ver ao abrir o painel.
+// Sócios veem a foto inteira da empresa; associados, só o recorte do
+// próprio projeto (o RLS já devolve apenas o que cada um pode ver).
 export default function Dashboard({ onNavigate }) {
-  const { session } = useApp();
+  const { session, isAdmin } = useApp();
   const [d, setD] = useState(null);
 
   useEffect(() => {
@@ -52,12 +54,12 @@ export default function Dashboard({ onNavigate }) {
       <h1 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.1rem' }}>Visão geral</h1>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.8rem', marginBottom: '1.4rem' }}>
-        <Kpi label="MRR" value={brl(d.mrr)} sub={`${d.ativas} assinatura(s) · ${d.clientes} cliente(s)`} />
-        <Kpi label="Resultado do mês" value={brl(resultado)} tone={resultado >= 0 ? 'ok' : 'danger'} sub={`${brl(d.entradas)} in · ${brl(d.saidas)} out`} />
-        <Kpi label="Funil de vendas" value={brl(d.funil)} sub={`${d.leads.length} lead(s) em aberto`} />
-        <Kpi label="Propostas em aberto" value={d.orcs.length} tone={d.orcs.length ? 'warn' : undefined} />
+        <Kpi label={isAdmin ? 'MRR' : 'MRR do projeto'} value={brl(d.mrr)} sub={`${d.ativas} assinatura(s)${isAdmin ? ` · ${d.clientes} cliente(s)` : ''}`} />
+        {isAdmin && <Kpi label="Resultado do mês" value={brl(resultado)} tone={resultado >= 0 ? 'ok' : 'danger'} sub={`${brl(d.entradas)} in · ${brl(d.saidas)} out`} />}
+        {isAdmin && <Kpi label="Funil de vendas" value={brl(d.funil)} sub={`${d.leads.length} lead(s) em aberto`} />}
+        {isAdmin && <Kpi label="Propostas em aberto" value={d.orcs.length} tone={d.orcs.length ? 'warn' : undefined} />}
         <Kpi label="Minhas tarefas" value={d.minhas.length} tone={atrasadas.some(t => t.resp_id === session.user.id) ? 'danger' : undefined} sub={`${d.tarefas.length} da equipe · ${atrasadas.length} atrasada(s)`} />
-        <Kpi label="Chamados abertos" value={d.tickets.length} tone={d.tickets.some(t => t.prioridade === 'urgente') ? 'danger' : undefined} />
+        {isAdmin && <Kpi label="Chamados abertos" value={d.tickets.length} tone={d.tickets.some(t => t.prioridade === 'urgente') ? 'danger' : undefined} />}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
@@ -77,7 +79,7 @@ export default function Dashboard({ onNavigate }) {
           {!d.tarefas.length && <VazioLinha msg="Nenhuma tarefa pendente. 👌" />}
         </Painel>
 
-        <Painel titulo="Propostas em negociação" acao={() => onNavigate('orcamentos')}>
+        {isAdmin && <Painel titulo="Propostas em negociação" acao={() => onNavigate('orcamentos')}>
           {d.orcs.slice(0, 6).map(o => {
             const it = o.orcamento_itens || [];
             const mensal = it.filter(i => i.secao === 'mensal').reduce((s, i) => s + Number(i.qtd) * Number(i.valor_unit), 0);
@@ -88,7 +90,7 @@ export default function Dashboard({ onNavigate }) {
             );
           })}
           {!d.orcs.length && <VazioLinha msg="Nenhuma proposta em aberto." />}
-        </Painel>
+        </Painel>}
 
         <Painel titulo="Próximos vencimentos" acao={() => onNavigate('assinaturas')}>
           {d.vencendo.slice(0, 6).map(a => {
@@ -104,25 +106,25 @@ export default function Dashboard({ onNavigate }) {
           {!d.vencendo.length && <VazioLinha msg="Nada vencendo nos próximos 30 dias." />}
         </Painel>
 
-        <Painel titulo="Mural — últimas da equipe" acao={() => onNavigate('mural')}>
+        {isAdmin && <Painel titulo="Mural — últimas da equipe" acao={() => onNavigate('mural')}>
           {d.mural.map(p => (
             <Linha key={p.id}
               a={<><strong>{nomeCurto(p.autor)}</strong> <span style={{ color: 'var(--text-3)' }}>· {p.texto}</span></>}
               b={p.fixado ? <span className="badge warn">fixado</span> : null} />
           ))}
           {!d.mural.length && <VazioLinha msg="Sem publicações no mural." />}
-        </Painel>
+        </Painel>}
 
-        <Painel titulo="Suporte aguardando" acao={() => onNavigate('tickets')}>
+        {isAdmin && <Painel titulo="Suporte aguardando" acao={() => onNavigate('tickets')}>
           {d.tickets.slice(0, 6).map(t => (
             <Linha key={t.id}
               a={<><strong>#{t.numero}</strong> {t.assunto}</>}
               b={<span className={`badge ${t.prioridade === 'urgente' ? 'danger' : t.prioridade === 'alta' ? 'warn' : ''}`}>{t.prioridade}</span>} />
           ))}
           {!d.tickets.length && <VazioLinha msg="Nenhum chamado aberto. 👌" />}
-        </Painel>
+        </Painel>}
 
-        <Painel titulo="Follow-ups de prospecção" acao={() => onNavigate('prospeccao')}>
+        {isAdmin && <Painel titulo="Follow-ups de prospecção" acao={() => onNavigate('prospeccao')}>
           {d.leads.filter(l => l.proxima_acao).sort((a, b) => a.proxima_acao.localeCompare(b.proxima_acao)).slice(0, 6).map(l => {
             const dd = diasAte(l.proxima_acao);
             return (
@@ -134,7 +136,7 @@ export default function Dashboard({ onNavigate }) {
             );
           })}
           {!d.leads.some(l => l.proxima_acao) && <VazioLinha msg="Nenhum follow-up agendado." />}
-        </Painel>
+        </Painel>}
       </div>
     </div>
   );

@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, brl, dataBR, diasAte, hoje } from '../lib/supabase';
 import { Modal, Field, Acoes, Vazio, Kpi } from '../components/ui';
+import { useApp } from '../App';
 import { FaPlus, FaPen, FaTrash, FaRedo } from 'react-icons/fa';
 
 const PRODUTOS = ['PRIME', 'GOqualy', 'EasyOEE', 'SGA', 'SIG Comércio'];
-const NOVO = { cliente_id: '', produto: 'PRIME', valor_mensal: '', inicio: hoje(), vencimento: '', status: 'ativa', obs: '' };
+const NOVO = { cliente_id: '', produto: 'PRIME', valor_mensal: '', inicio: hoje(), vencimento: '', status: 'ativa', obs: '', projeto_id: '' };
 
+// Sócios gerenciam tudo; associados apenas VEEM as assinaturas do
+// próprio projeto (RLS filtra as linhas e barra qualquer escrita).
 export default function Assinaturas() {
+  const { projetos, projFiltro, isAdmin } = useApp();
   const [lista, setLista] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [filtro, setFiltro] = useState('todas');
@@ -22,14 +26,17 @@ export default function Assinaturas() {
   }, []);
   useEffect(() => { carregar(); }, [carregar]);
 
-  const filtradas = lista.filter(a => {
+  const nomeProjeto = (id) => projetos.find(p => p.id === id)?.nome;
+
+  const doFiltroProj = lista.filter(a => projFiltro === 'todos' || a.projeto_id === projFiltro);
+  const filtradas = doFiltroProj.filter(a => {
     if (filtro === 'todas') return true;
     if (filtro === 'vencendo') { const d = diasAte(a.vencimento); return (a.status === 'ativa' || a.status === 'trial') && d != null && d <= 30; }
     return a.status === filtro;
   });
 
-  const mrr = lista.filter(a => a.status === 'ativa').reduce((s, a) => s + Number(a.valor_mensal), 0);
-  const atrasadas = lista.filter(a => a.status === 'atrasada').length;
+  const mrr = doFiltroProj.filter(a => a.status === 'ativa').reduce((s, a) => s + Number(a.valor_mensal), 0);
+  const atrasadas = doFiltroProj.filter(a => a.status === 'atrasada').length;
 
   const salvar = async () => {
     if (!edit.cliente_id) return alert('Selecione o cliente.');
@@ -37,6 +44,7 @@ export default function Assinaturas() {
     setBusy(true);
     const { id, created_at, clientes: _c, ...campos } = edit;
     campos.valor_mensal = Number(campos.valor_mensal) || 0;
+    campos.projeto_id = campos.projeto_id || null;
     if (id) await supabase.from('assinaturas').update(campos).eq('id', id);
     else await supabase.from('assinaturas').insert(campos);
     setBusy(false); setEdit(null); carregar();
@@ -68,7 +76,7 @@ export default function Assinaturas() {
           <option value="atrasada">Atrasadas</option>
           <option value="cancelada">Canceladas</option>
         </select>
-        <button className="btn solid" onClick={() => setEdit({ ...NOVO })}><FaPlus size={11} /> Nova</button>
+        {isAdmin && <button className="btn solid" onClick={() => setEdit({ ...NOVO, projeto_id: projFiltro !== 'todos' ? projFiltro : '' })}><FaPlus size={11} /> Nova</button>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.8rem', marginBottom: '1rem' }}>
@@ -87,7 +95,11 @@ export default function Assinaturas() {
               return (
                 <tr key={a.id}>
                   <td><strong>{a.clientes?.empresa || '—'}</strong>{a.obs && <div style={{ fontSize: '0.72rem', color: 'var(--text-4)' }}>{a.obs}</div>}</td>
-                  <td>{a.produto}</td>
+                  <td>
+                    {a.produto}
+                    {projFiltro === 'todos' && a.projeto_id && nomeProjeto(a.projeto_id) &&
+                      <div style={{ marginTop: 2 }}><span className="badge info">{nomeProjeto(a.projeto_id)}</span></div>}
+                  </td>
                   <td className="num" style={{ fontWeight: 700 }}>{brl(a.valor_mensal)}</td>
                   <td style={{ color: corVenc, fontWeight: 600 }}>
                     {dataBR(a.vencimento)}
@@ -96,9 +108,11 @@ export default function Assinaturas() {
                   </td>
                   <td><span className={`badge ${a.status === 'ativa' ? 'ok' : a.status === 'atrasada' ? 'danger' : a.status === 'trial' ? 'info' : ''}`}>{a.status}</span></td>
                   <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-                    {a.status !== 'cancelada' && <button className="btn sm" title="Renovar +1 mês" style={{ marginRight: 4 }} onClick={() => renovar(a)}><FaRedo size={9} /> +1 mês</button>}
-                    <button className="btn sm" style={{ marginRight: 4 }} onClick={() => setEdit({ ...a })}><FaPen size={10} /></button>
-                    <button className="btn sm warn" onClick={() => remover(a)}><FaTrash size={10} /></button>
+                    {isAdmin && <>
+                      {a.status !== 'cancelada' && <button className="btn sm" title="Renovar +1 mês" style={{ marginRight: 4 }} onClick={() => renovar(a)}><FaRedo size={9} /> +1 mês</button>}
+                      <button className="btn sm" style={{ marginRight: 4 }} onClick={() => setEdit({ ...a, projeto_id: a.projeto_id || '' })}><FaPen size={10} /></button>
+                      <button className="btn sm warn" onClick={() => remover(a)}><FaTrash size={10} /></button>
+                    </>}
                   </td>
                 </tr>
               );
@@ -110,7 +124,7 @@ export default function Assinaturas() {
 
       {edit && (
         <Modal titulo={edit.id ? 'Editar assinatura' : 'Nova assinatura'} onClose={() => setEdit(null)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+          <div className="grid-2">
             <Field label="Cliente" span={2}>
               <select className="input" value={edit.cliente_id} onChange={e => setEdit({ ...edit, cliente_id: e.target.value })}>
                 <option value="">Selecione…</option>
@@ -132,6 +146,12 @@ export default function Assinaturas() {
               </select>
             </Field>
             <Field label="Observações"><input className="input" value={edit.obs} onChange={e => setEdit({ ...edit, obs: e.target.value })} /></Field>
+            <Field label="Projeto (associados do projeto passam a ver esta assinatura)" span={2}>
+              <select className="input" value={edit.projeto_id || ''} onChange={e => setEdit({ ...edit, projeto_id: e.target.value })}>
+                <option value="">Sem projeto — só sócios</option>
+                {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+            </Field>
           </div>
           <Acoes onCancel={() => setEdit(null)} onOk={salvar} busy={busy} />
         </Modal>

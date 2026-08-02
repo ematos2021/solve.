@@ -10,7 +10,7 @@
   -webkit-font-smoothing: antialiased;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 14px; }
+html { font-size: 14px; -webkit-text-size-adjust: 100%; }
 body { background: var(--bg); color: var(--text); min-height: 100vh; }
 #root { min-height: 100vh; }
 ::-webkit-scrollbar { width: 9px; height: 9px; }
@@ -63,12 +63,39 @@ select.input option { background: #17171a; color: var(--text); }
 .tbl td { padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); }
 .tbl tbody tr:hover { background: var(--card-hover); }
 .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Envolve tabelas que não estão num card rolável (ex.: editor de proposta) */
+.tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .fade-in { animation: fadeIn 0.3s ease both; }
 
-/* ── Kanban (tarefas e prospecção) ── */
-.kanban { display: flex; gap: 0.8rem; align-items: flex-start; overflow-x: auto; padding-bottom: 0.5rem; }
+/* ── Estrutura do app: sidebar fixa no desktop, gaveta no celular ── */
+.layout { display: flex; min-height: 100vh; }
+.main { flex: 1; min-width: 0; padding: 1.5rem 1.8rem; }
+.sidebar {
+  width: 214px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--bg-2);
+  display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.topbar { display: none; }
+.nav-overlay { display: none; }
+
+/* ── Grades de formulário (modais e editor de proposta) ── */
+.grid-2, .grid-4 { display: grid; gap: 0.8rem; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.f2 { grid-column: span 2; }
+.f4 { grid-column: 1 / -1; }
+
+/* ── Modal ── */
+.modal-ov {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(5,5,6,0.85); backdrop-filter: blur(5px);
+  display: flex; align-items: center; justify-content: center; padding: 1rem; overflow-y: auto;
+}
+.modal-box { width: 100%; max-width: 480px; padding: 1.3rem; max-height: 92vh; max-height: calc(100dvh - 1.6rem); overflow-y: auto; margin: auto; }
+.modal-box.wide { max-width: 660px; }
+
+/* ── Kanban (tarefas, prospecção e brainstorm) ── */
+.kanban { display: flex; gap: 0.8rem; align-items: flex-start; overflow-x: auto; padding-bottom: 0.5rem; -webkit-overflow-scrolling: touch; }
 .kanban-col { flex: 1; min-width: 230px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 13px; padding: 0.7rem; }
 .kanban-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0.3rem 0.6rem; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-3); }
 .kanban-count { margin-left: auto; font-size: 0.68rem; background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; color: var(--text-3); }
@@ -94,14 +121,119 @@ select.input option { background: #17171a; color: var(--text); }
 
 .nav-sec { font-size: 0.6rem; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-4); padding: 0.75rem 0.75rem 0.25rem; }
 
+/* ── Mural: coluna principal + sinos ── */
+.mural-wrap { display: flex; gap: 2.5rem; align-items: flex-start; width: 100%; max-width: 1400px; }
+.mural-bells { flex-shrink: 0; position: sticky; top: 20px; display: flex; flex-direction: column; gap: 1rem; }
+.mural-form { display: flex; gap: 0.7rem; align-items: flex-end; }
+
+/* ═══════════════ Responsivo: tablet e celular ═══════════════ */
+@media (max-width: 860px) {
+  .layout { display: block; }
+  .main { padding: 0.9rem 0.9rem calc(1.4rem + env(safe-area-inset-bottom)); }
+
+  /* Barra superior com hambúrguer (só existe no mobile) */
+  .topbar {
+    display: flex; align-items: center; gap: 0.7rem; position: sticky; top: 0; z-index: 60;
+    padding: 0.55rem 0.9rem; padding-top: calc(0.55rem + env(safe-area-inset-top));
+    background: rgba(13,13,15,0.92); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Sidebar vira gaveta deslizante */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 80;
+    width: min(80vw, 300px); height: 100dvh;
+    transform: translateX(-102%); transition: transform 0.25s ease;
+    box-shadow: 12px 0 40px rgba(0,0,0,0.5); border-right: 1px solid var(--border-strong);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .sidebar.open { transform: none; }
+  .nav-overlay {
+    display: block; position: fixed; inset: 0; z-index: 70;
+    background: rgba(0,0,0,0.55); opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .nav-overlay.on { opacity: 1; pointer-events: auto; }
+
+  /* Inputs com 16px: evita o zoom automático do iOS ao focar */
+  .input, select.input, textarea.input { font-size: 16px; }
+
+  /* Colunas do kanban em largura de "página": desliza uma por vez */
+  .kanban { scroll-snap-type: x proximity; gap: 0.7rem; }
+  .kanban-col { min-width: min(84vw, 300px); scroll-snap-align: start; }
+
+  /* Tabelas mantêm proporção e rolam na horizontal dentro do card */
+  .tbl { min-width: 640px; }
+
+  /* Modais aproveitam a tela toda */
+  .modal-ov { padding: 0.6rem; }
+  .modal-box { padding: 1.1rem 1rem; }
+
+  /* Mural: sinos descem para uma fileira abaixo do feed */
+  .mural-wrap { flex-direction: column; gap: 1.2rem; }
+  .mural-bells { position: static; flex-direction: row; flex-wrap: wrap; justify-content: center; width: 100%; }
+  .mural-form { flex-direction: column; align-items: stretch; }
+  .mural-form .btn { width: 100%; }
+}
+
+@media (max-width: 900px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-4 > .f2 { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .grid-2, .grid-4 { grid-template-columns: 1fr; }
+  .f2, .f4 { grid-column: auto; }
+}
+
+/* Alvos de toque confortáveis em telas de toque */
+@media (pointer: coarse) {
+  .btn { min-height: 40px; }
+  .btn.sm { min-height: 34px; padding: 0.3rem 0.6rem; }
+  .reacao { min-height: 28px; padding: 2px 10px; }
+  .input { min-height: 42px; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { animation: none; }
+  .sidebar, .nav-overlay { transition: none; }
+}
+
+/* ═══════════════ App instalado (APK / iOS) ═══════════════
+   A classe .app-nativo é posta no <html> por src/lib/native.js. Serve para os
+   acertos que só valem dentro da WebView — no navegador nada muda. */
+.app-nativo body {
+  /* sem "elástico" ao chegar no fim da lista, sem puxar-para-recarregar */
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+/* Menu, botões e rótulos não devem virar seleção de texto ao segurar o dedo.
+   Conteúdo (propostas, notas do mural, tabelas) continua selecionável/copiável. */
+.app-nativo .btn, .app-nativo .badge, .app-nativo .label, .app-nativo .nav-sec,
+.app-nativo .sidebar, .app-nativo .topbar, .app-nativo .kanban-head, .app-nativo .reacao {
+  user-select: none; -webkit-user-select: none;
+}
+.app-nativo .input, .app-nativo .tbl, .app-nativo .nota, .app-nativo .print-doc {
+  user-select: text; -webkit-user-select: text;
+}
+/* A barra do sistema já ocupa o topo (overlaysWebView: false), então o
+   padding de safe-area viraria um vão preto duplicado. */
+.app-android .topbar { padding-top: 0.55rem; }
+/* Sem mouse não existe hover: a barra de rolagem fina só atrapalharia o toque */
+.app-nativo ::-webkit-scrollbar { width: 0; height: 0; }
+
 /* ── Impressão da proposta (Ctrl+P ou botão PDF) ── */
 .print-doc { display: none; }
 @media print {
   @page { size: A4; margin: 14mm 0; }
-  body { background: #fff; }
-  body * { visibility: hidden; }
-  .print-doc { display: block; visibility: visible; position: absolute; left: 0; top: 0; width: 100%; }
-  .print-doc * { visibility: visible; }
+  html, body { background: #fff; height: auto; overflow: visible; }
+  /* Só a proposta vai ao papel. Escondemos o app com display:none (e não
+     visibility:hidden) para que ele não ocupe altura nenhuma — era isso que
+     gerava páginas em branco no fim ao imprimir pelo serviço do Android.
+     O .print-doc é irmão do #root: os dois são filhos diretos do <body>
+     (o componente usa createPortal). */
+  body > * { display: none !important; }
+  body > .print-doc { display: block !important; position: static; width: 100%; }
   .print-doc table, .print-doc tr { break-inside: avoid; }
   .quebra-depois { break-after: page; }
   /* Título da seção nunca fica órfão do conteúdo na quebra de página */

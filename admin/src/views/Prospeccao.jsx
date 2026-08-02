@@ -94,7 +94,7 @@ export default function Prospeccao() {
           const doCol = lista.filter(l => l.etapa === col.id);
           const valor = doCol.reduce((s, l) => s + Number(l.valor_estimado || 0), 0);
           return (
-            <div key={col.id} className="kanban-col" style={{ minWidth: 215 }}>
+            <div key={col.id} className="kanban-col">
               <div className="kanban-head">
                 {col.label} <span className="kanban-count">{doCol.length}{valor > 0 ? ` · ${brl(valor)}` : ''}</span>
               </div>
@@ -149,7 +149,7 @@ export default function Prospeccao() {
 
       {edit && (
         <Modal titulo={edit.id ? 'Editar lead' : 'Novo lead'} onClose={() => setEdit(null)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+          <div className="grid-2">
             <Field label="Empresa"><input className="input" value={edit.empresa || ''} onChange={e => setEdit({ ...edit, empresa: e.target.value })} autoFocus /></Field>
             <Field label="Pessoa de contato"><input className="input" value={edit.nome || ''} onChange={e => setEdit({ ...edit, nome: e.target.value })} /></Field>
             <Field label="Telefone / e-mail"><input className="input" value={edit.contato || ''} onChange={e => setEdit({ ...edit, contato: e.target.value })} /></Field>

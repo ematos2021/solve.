@@ -5,9 +5,10 @@
 // Ao preencher o .env, o app troca sozinho para o Supabase real.
 // ─────────────────────────────────────────────────────────────────
 
-const LS_KEY = 'solve-demo-db-v1';
+const LS_KEY = 'solve-demo-db-v2';   // v2: projetos e associados
 
-const EU = 'demo-eugenio', RA = 'demo-rafael', MA = 'demo-marina';
+const EU = 'demo-eugenio', RA = 'demo-rafael', MA = 'demo-marina', AS = 'demo-aline';
+const PJ_CUIDAR = 'proj-cuidar', PJ_MRQ = 'proj-mrq';
 export const DEMO_USER = { id: EU, email: 'eugeniomatos10@gmail.com' };
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2));
@@ -28,6 +29,14 @@ function seed() {
       { user_id: EU, nome: 'Eugênio Matos', empresa: 'Solve', telefone: '', role: 'admin', created_at: ts(-90) },
       { user_id: RA, nome: 'Rafael Souza', empresa: 'Solve', telefone: '', role: 'admin', created_at: ts(-90) },
       { user_id: MA, nome: 'Marina Costa', empresa: 'Solve', telefone: '', role: 'admin', created_at: ts(-90) },
+      { user_id: AS, nome: 'Aline Ferreira', empresa: '', telefone: '', role: 'associado', created_at: ts(-30) },
+    ],
+    projetos: [
+      { id: PJ_CUIDAR, nome: 'Cuidar', descricao: 'Plataforma de gestão para clínicas e cuidadores.', ativo: true, created_at: ts(-40) },
+      { id: PJ_MRQ, nome: 'MRQ', descricao: 'Produto em incubação com associados.', ativo: true, created_at: ts(-25) },
+    ],
+    projeto_membros: [
+      { projeto_id: PJ_CUIDAR, user_id: AS, created_at: ts(-30) },
     ],
     clientes: [
       { id: cMondial, empresa: 'MK Eletrodomésticos Mondial S.A.', contato: 'Sara Feitosa', email: 'sara.feitosa@mondial.com.br', whatsapp: '71998765432', obs: 'Conta estratégica — upgrade de licenciamento em negociação', status: 'ativo', created_at: ts(-200) },
@@ -67,12 +76,14 @@ function seed() {
       { id: uid(), titulo: 'Cobrar boleto atrasado SGA — Metalúrgica', descricao: '', status: 'a_fazer', prioridade: 'alta', prazo: dia(0), resp_id: MA, criador_id: MA, cliente_id: cMetal, done_at: null, created_at: ts(0, 9) },
       { id: uid(), titulo: 'Emitir notas fiscais das assinaturas', descricao: '', status: 'feito', prioridade: 'normal', prazo: dia(-2), resp_id: MA, criador_id: MA, cliente_id: null, done_at: ts(-2, 17), created_at: ts(-5) },
       { id: uid(), titulo: 'Reunião de diagnóstico Farmalab', descricao: 'Mapear processos de qualidade atuais.', status: 'feito', prioridade: 'alta', prazo: dia(-4), resp_id: EU, criador_id: EU, cliente_id: cFarma, done_at: ts(-4, 16), created_at: ts(-12) },
+      { id: uid(), titulo: 'Protótipo do check-in por QR Code', descricao: 'Fluxo de leitura + registro no app do cuidador.', status: 'fazendo', prioridade: 'alta', prazo: dia(5), resp_id: AS, criador_id: EU, cliente_id: null, projeto_id: PJ_CUIDAR, done_at: null, created_at: ts(-3) },
     ],
     ideias: [
       { id: 'ide-pix', titulo: 'Automatizar cobrança via Pix recorrente', descricao: 'Gerar cobrança automática no vencimento e baixar o lançamento no caixa sozinho.', categoria: 'Processo interno', status: 'em_execucao', votos: 4, autor_id: MA, created_at: ts(-20) },
       { id: uid(), titulo: 'Painel do cliente com indicadores em tempo real', descricao: 'Cada cliente vê os próprios KPIs (OEE, não conformidades) direto no portal.', categoria: 'Produto', status: 'avaliando', votos: 3, autor_id: RA, created_at: ts(-9) },
       { id: uid(), titulo: 'Plano anual com 2 meses de desconto', descricao: 'Melhora caixa e reduz churn. Testar na renovação da Metalúrgica.', categoria: 'Comercial', status: 'aprovada', votos: 2, autor_id: EU, created_at: ts(-14) },
       { id: uid(), titulo: 'Programa de indicação entre clientes', descricao: '10% de desconto por indicação convertida (caso Transportadora Rocha veio assim).', categoria: 'Marketing', status: 'nova', votos: 1, autor_id: MA, created_at: ts(-2) },
+      { id: 'ide-cuidar', titulo: 'App do cuidador com check-in por QR Code', descricao: 'Cuidador escaneia o QR na casa do paciente e registra entrada, medicação e observações.', categoria: 'Produto', status: 'avaliando', votos: 2, autor_id: AS, projeto_id: PJ_CUIDAR, created_at: ts(-5) },
     ],
     ideia_notas: [
       { id: uid(), ideia_id: 'ide-pix', tipo: 'oportunidade', texto: 'Acaba com a cobrança manual todo mês — economiza umas 4h da Marina.', autor_id: EU, reacoes: { '👍': [RA, MA], '🔥': [MA] }, created_at: ts(-18, 9) },
@@ -81,6 +92,8 @@ function seed() {
       { id: uid(), ideia_id: 'ide-pix', tipo: 'pergunta', texto: 'Qual banco tem a melhor API de Pix recorrente hoje? Comparar taxas.', autor_id: EU, reacoes: {}, created_at: ts(-16, 10) },
       { id: uid(), ideia_id: 'ide-pix', tipo: 'passo', texto: 'Levantar taxas de 3 bancos e montar comparativo', autor_id: MA, reacoes: { '👍': [EU, RA] }, created_at: ts(-15, 16) },
       { id: uid(), ideia_id: 'ide-pix', tipo: 'passo', texto: 'Testar sandbox do banco escolhido com um cliente piloto', autor_id: RA, reacoes: {}, created_at: ts(-14, 9) },
+      { id: uid(), ideia_id: 'ide-cuidar', tipo: 'oportunidade', texto: 'Famílias ganham transparência em tempo real — forte argumento de venda.', autor_id: AS, reacoes: { '🔥': [EU] }, created_at: ts(-4, 10) },
+      { id: uid(), ideia_id: 'ide-cuidar', tipo: 'pergunta', texto: 'O check-in funciona offline se a casa não tiver internet?', autor_id: EU, reacoes: {}, created_at: ts(-3, 15) },
     ],
     mural: [
       { id: uid(), autor_id: EU, texto: 'Prioridade da semana: fechar o upgrade da Mondial. 🏆\nProposta PRO2026/00/1670 enviada — follow-up com a Sara é amanhã. Qualquer contato dela, me avisem.', fixado: true, created_at: ts(-2, 9) },

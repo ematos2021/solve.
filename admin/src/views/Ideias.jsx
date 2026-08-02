@@ -14,11 +14,12 @@ const STATUS = [
   { id: 'descartada', label: 'Descartada', cls: 'danger' },
 ];
 const CATEGORIAS = ['Produto', 'Comercial', 'Marketing', 'Processo interno', 'Novo negócio'];
-const NOVA = { titulo: '', descricao: '', categoria: 'Produto', status: 'nova' };
+const NOVA = { titulo: '', descricao: '', categoria: 'Produto', status: 'nova', projeto_id: '' };
 
-// Backlog de ideias da sociedade: qualquer sócio registra, todos votam.
+// Backlog de ideias: sócios veem tudo; associados só as ideias dos
+// próprios projetos (o RLS garante — aqui é só a interface).
 export default function Ideias() {
-  const { session } = useApp();
+  const { session, projetos, projFiltro, isAdmin } = useApp();
   const [lista, setLista] = useState([]);
   const [filtro, setFiltro] = useState('ativas');
   const [edit, setEdit] = useState(null);
@@ -32,7 +33,12 @@ export default function Ideias() {
   }, []);
   useEffect(() => { carregar(); }, [carregar]);
 
+  const nomeProjeto = (id) => projetos.find(p => p.id === id)?.nome;
+  // Projeto padrão de uma ideia nova: a lente ativa; associado nunca cria "interna"
+  const projetoPadrao = projFiltro !== 'todos' ? projFiltro : (isAdmin ? '' : (projetos[0]?.id || ''));
+
   const visiveis = lista.filter(i => {
+    if (projFiltro !== 'todos' && i.projeto_id !== projFiltro) return false;
     if (filtro === 'todas') return true;
     if (filtro === 'ativas') return !['concluida', 'descartada'].includes(i.status);
     return i.status === filtro;
@@ -40,8 +46,10 @@ export default function Ideias() {
 
   const salvar = async () => {
     if (!edit.titulo.trim()) return alert('Dê um título à ideia.');
+    if (!isAdmin && !edit.projeto_id) return alert('Escolha o projeto da ideia.');
     setBusy(true);
     const { id, created_at, votos, autor: _a, ideia_notas: _n, ...campos } = edit;
+    campos.projeto_id = campos.projeto_id || null;
     if (id) await supabase.from('ideias').update(campos).eq('id', id);
     else await supabase.from('ideias').insert({ ...campos, autor_id: session.user.id });
     setBusy(false); setEdit(null); carregar();
@@ -75,7 +83,7 @@ export default function Ideias() {
           <option value="todas">Todas</option>
           {STATUS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
-        <button className="btn solid" onClick={() => setEdit({ ...NOVA })}><FaPlus size={11} /> Nova ideia</button>
+        <button className="btn solid" onClick={() => setEdit({ ...NOVA, projeto_id: projetoPadrao })}><FaPlus size={11} /> Nova ideia</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.9rem' }}>
@@ -93,8 +101,9 @@ export default function Ideias() {
                 <Avatar perfil={i.autor} />
               </div>
               {i.descricao && <div style={{ fontSize: '0.82rem', color: 'var(--text-2)', flex: 1 }}>{i.descricao}</div>}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: 'auto', flexWrap: 'wrap' }}>
                 <span className={`badge ${st.cls}`}>{st.label}</span>
+                {i.projeto_id && nomeProjeto(i.projeto_id) && <span className="badge info">{nomeProjeto(i.projeto_id)}</span>}
                 <span style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
                   <button className="btn sm" onClick={() => votar(i)} title="Apoiar esta ideia">
                     <FaThumbsUp size={10} /> {i.votos}
@@ -121,7 +130,7 @@ export default function Ideias() {
 
       {edit && (
         <Modal titulo={edit.id ? 'Editar ideia' : 'Nova ideia'} onClose={() => setEdit(null)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+          <div className="grid-2">
             <Field label="Título" span={2}><input className="input" value={edit.titulo} onChange={e => setEdit({ ...edit, titulo: e.target.value })} autoFocus /></Field>
             <Field label="Descrição" span={2}><textarea className="input" rows={3} value={edit.descricao} onChange={e => setEdit({ ...edit, descricao: e.target.value })} placeholder="Qual o problema, a oportunidade e o próximo passo?" /></Field>
             <Field label="Categoria">
@@ -132,6 +141,12 @@ export default function Ideias() {
             <Field label="Status">
               <select className="input" value={edit.status} onChange={e => setEdit({ ...edit, status: e.target.value })}>
                 {STATUS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Projeto" span={2}>
+              <select className="input" value={edit.projeto_id || ''} onChange={e => setEdit({ ...edit, projeto_id: e.target.value })}>
+                {isAdmin && <option value="">Interno — só sócios</option>}
+                {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
               </select>
             </Field>
           </div>

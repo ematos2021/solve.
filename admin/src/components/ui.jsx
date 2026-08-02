@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { createPortal } from 'react-dom';
+import { aoVoltar } from '../lib/native';
 
 export function Kpi({ label, value, sub, tone }) {
   const cor = tone === 'ok' ? 'var(--ok)' : tone === 'warn' ? 'var(--warn)' : tone === 'danger' ? 'var(--danger)' : 'var(--text)';
@@ -13,14 +15,19 @@ export function Kpi({ label, value, sub, tone }) {
 }
 
 export function Modal({ titulo, onClose, children, wide }) {
+  // No app, "voltar" fecha o modal em vez de fechar o app; no navegador, Esc.
+  useEffect(() => {
+    const baixa = aoVoltar(onClose);
+    const esc = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', esc);
+    return () => { baixa(); window.removeEventListener('keydown', esc); };
+  }, [onClose]);
+
   // Portal para o <body>: garante que o overlay cubra a viewport inteira,
   // imune a transforms/animações de containers pai (senão o modal "escapa" de posição).
   return createPortal(
-    <div onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }} style={{
-      position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(5,5,6,0.85)', backdropFilter: 'blur(5px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', overflowY: 'auto',
-    }}>
-      <div className="card fade-in" style={{ width: '100%', maxWidth: wide ? 660 : 480, padding: '1.3rem', maxHeight: '92vh', overflowY: 'auto', margin: 'auto' }}>
+    <div className="modal-ov" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className={`card fade-in modal-box ${wide ? 'wide' : ''}`}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>{titulo}</h2>
           <button onClick={onClose} className="btn sm" style={{ marginLeft: 'auto', border: 'none' }}><FaTimes size={13} /></button>
@@ -32,8 +39,9 @@ export function Modal({ titulo, onClose, children, wide }) {
   );
 }
 
+// span vira classe (f2/f4) para a grade poder colapsar em 1 coluna no celular
 export const Field = ({ label, children, span }) => (
-  <div style={span ? { gridColumn: `span ${span}` } : undefined}>
+  <div className={span ? `f${span}` : undefined}>
     <label className="label">{label}</label>
     {children}
   </div>

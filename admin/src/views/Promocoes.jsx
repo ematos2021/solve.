@@ -74,7 +74,7 @@ export default function Promocoes() {
 
       {edit && (
         <Modal titulo={edit.id ? 'Editar promoção' : 'Nova promoção'} onClose={() => setEdit(null)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+          <div className="grid-2">
             <Field label="Nome" span={2}><input className="input" value={edit.nome} onChange={e => setEdit({ ...edit, nome: e.target.value })} autoFocus placeholder="ex.: Black Friday Indústria" /></Field>
             <Field label="Produto">
               <select className="input" value={edit.produto} onChange={e => setEdit({ ...edit, produto: e.target.value })}>
