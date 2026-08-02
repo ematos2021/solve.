@@ -24,6 +24,10 @@ jobs:
     defaults:
       run:
         working-directory: admin
+    env:
+      # O contexto `secrets` não pode ser lido no `if:` de um passo — só aqui,
+      # no env do job. Guardamos apenas "tem chave? sim/não", nunca a chave.
+      TEM_CHAVE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -45,16 +49,23 @@ jobs:
         run: npm ci
 
       - name: Gravar chaves do Supabase
+        env:
+          URL: ${{ secrets.VITE_SUPABASE_URL }}
+          ANON: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
-          echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" > .env
-          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> .env
+          # Sem as chaves, a Central entraria em MODO DEMO e o APK sairia com
+          # dados de exemplo — melhor falhar aqui do que descobrir no celular.
+          if [ -z "$URL" ] || [ -z "$ANON" ]; then
+            echo "::error::Cadastre os secrets VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY em Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' "$URL" "$ANON" > .env
 
       - name: Build do site + sync com o projeto Android
         run: npx vite build && npx cap sync android
 
-      - name: Preparar assinatura (se a chave estiver nos secrets)
-        id: assinatura
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Preparar assinatura (só se a chave estiver nos secrets)
+        if: env.TEM_CHAVE == 'true'
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/solve.jks
           cat > android/keystore.properties <<EOF
@@ -63,14 +74,13 @@ jobs:
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
-          echo "assinado=sim" >> "$GITHUB_OUTPUT"
 
       - name: Montar APK assinado
-        if: steps.assinatura.outputs.assinado == 'sim'
+        if: env.TEM_CHAVE == 'true'
         run: chmod +x android/gradlew && cd android && ./gradlew assembleRelease
 
       - name: Montar APK de teste (sem chave própria)
-        if: steps.assinatura.outputs.assinado != 'sim'
+        if: env.TEM_CHAVE != 'true'
         run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
 
       - name: Publicar o APK como artefato
