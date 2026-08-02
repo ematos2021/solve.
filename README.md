@@ -139,8 +139,15 @@ keyPassword=SUA_SENHA
 
 Ambos estão no `.gitignore` — nunca vão para o git. Com eles no lugar,
 `npm run apk:release` gera o APK assinado em `app/build/outputs/apk/release/`.
-Para usar o Caminho A assinado, adicione os secrets `ANDROID_KEYSTORE_BASE64`
-(`base64 -w0 solve.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` e `ANDROID_KEY_PASSWORD`.
+
+Para usar o Caminho A assinado, cadastre quatro secrets no GitHub:
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` e
+`ANDROID_KEYSTORE_BASE64` — este último é o arquivo `.jks` convertido em texto:
+
+```powershell
+# copia o conteúdo já pronto para colar no secret
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\solve.jks")) | Set-Clipboard
+```
 
 ### Publicar uma atualização
 
